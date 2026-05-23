@@ -1,0 +1,22 @@
+eureka:
+  client:
+    enabled: false
+    fetch-registry: false
+    register-with-eureka: false
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: customer-service
+          uri: http://customer-service:8080
+          predicates:
+            - Path=/api/owners/**, /api/pets/**, /api/petTypes/**, /api/internal/**
+        - id: vet-service
+          uri: http://vet-service:8081
+          predicates:
+            - Path=/api/vets/**, /api/specialties/**
+        - id: visit-service
+          uri: http://visit-service:8082
+          predicates:
+            - Path=/api/visits/**

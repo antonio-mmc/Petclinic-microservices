@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # 1. Message Broker (Para a Consistência Eventual)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: asid-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Observabilidade (Para os traces OTEL)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: asid-jaeger
+    ports:
+      - "16686:16686" # UI do Jaeger no Browser
+      - "4318:4318"   # Porta OTLP HTTP que o agente Java usa
+
+  # 3. Os Vossos Micro-serviços
+  customer-service:
+    image: grupo1/customer-service:latest
+    container_name: customer-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_ENABLED=false
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  vet-service:
+    image: grupo1/vet-service:latest
+    container_name: vet-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_ENABLED=false
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+
+  visit-service:
+    image: grupo1/visit-service:latest
+    container_name: visit-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_ENABLED=false
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - SPRING_CLOUD_DISCOVERY_SIMPLE_INSTANCES_CUSTOMER_SERVICE_0_URI=http://customer-service:8080
+      - APP_CUSTOMER_SERVICE_URL=http://customer-service:8080
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+
+  api-gateway:
+    image: grupo1/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_ENABLED=false
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - SPRING_CLOUD_DISCOVERY_SIMPLE_INSTANCES_CUSTOMER_SERVICE_0_URI=http://customer-service:8080
+      - SPRING_CLOUD_DISCOVERY_SIMPLE_INSTANCES_VET_SERVICE_0_URI=http://vet-service:8081
+      - SPRING_CLOUD_DISCOVERY_SIMPLE_INSTANCES_VISIT_SERVICE_0_URI=http://visit-service:8082
+    depends_on:
+      - customer-service
+      - vet-service
+      - visit-service

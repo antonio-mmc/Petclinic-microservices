@@ -1,0 +1,54 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      # 1. ADICIONADO: Configuração CORS para o Front-End não ser bloqueado
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+      routes:
+        - id: customer-service
+          uri: lb://customer-service
+          predicates:
+            - Path=/api/owners/**, /api/pets/**, /api/petTypes/**, /api/internal/**
+        - id: vet-service
+          uri: lb://vet-service
+          predicates:
+            - Path=/api/vets/**, /api/specialties/**
+        - id: visit-service
+          uri: lb://visit-service
+          predicates:
+            - Path=/api/visits/**
+ # (O resto da configuração de routes e cors mantém-se igual)
+    discovery:
+      client: # <--- Faltava esta palavra!
+        simple:
+          instances:
+            customer-service:
+              - uri: "http://customer-service:8080" # <--- Usar o nome do contentor Docker
+            vet-service:
+              - uri: "http://vet-service:8081"
+            visit-service:
+              - uri: "http://visit-service:8082"
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    org.springframework.samples.petclinic: DEBUG
