@@ -296,6 +296,28 @@ kubectl scale deployment customer-service --replicas=1
 
 ---
 
+## Testing
+
+Each service has its own unit/integration test suite. Run per module:
+
+```bash
+mvn test -pl customer-service   # 8 tests
+mvn test -pl visit-service      # 13 tests
+mvn test -pl vet-service        # 4 tests
+mvn test -pl api-gateway        # 7 tests
+```
+
+| Service | Test Class | Pattern | Coverage |
+|---|---|---|---|
+| `customer-service` | `OwnerControllerTest` | `@WebMvcTest` + `@MockBean` | GET owner (200/404), POST pet (201/400/404) |
+| `customer-service` | `InternalPetControllerTest` | `@WebMvcTest` + `@MockBean` | GET pet (200/404), status validation (409) |
+| `visit-service` | `VisitControllerTest` | `@WebMvcTest` + `@MockBean` | GET/POST/PUT/DELETE visits, 409 conflict |
+| `visit-service` | `PetEventConsumerTest` | `@ExtendWith(MockitoExtension)` | PetDeactivatedEvent: deleteAll / skip |
+| `vet-service` | `VetResourceTest` | `@WebMvcTest` + `@MockBean` | GET all, GET by ID (200/404), POST |
+| `api-gateway` | `GatewayRoutesTest` | `@SpringBootTest` | `lb://` URI per service, 3 routes |
+
+---
+
 ## Smoke Test Sequence
 
 ```bash
