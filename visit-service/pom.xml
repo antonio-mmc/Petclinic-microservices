@@ -76,6 +76,12 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- Async Messaging — Spring Cloud Stream with RabbitMQ Binder -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-stream-rabbit</artifactId>
+        </dependency>
+
         <!-- Runtime & Tools -->
         <dependency>
             <groupId>com.h2database</groupId>

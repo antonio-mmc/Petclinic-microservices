@@ -6,7 +6,6 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      # 1. ADICIONADO: Configuração CORS para o Front-End não ser bloqueado
       globalcors:
         corsConfigurations:
           '[/**]':
@@ -26,13 +25,12 @@ spring:
           uri: lb://visit-service
           predicates:
             - Path=/api/visits/**
- # (O resto da configuração de routes e cors mantém-se igual)
     discovery:
-      client: # <--- Faltava esta palavra!
+      client:
         simple:
           instances:
             customer-service:
-              - uri: "http://customer-service:8080" # <--- Usar o nome do contentor Docker
+              - uri: "http://customer-service:8080"
             vet-service:
               - uri: "http://vet-service:8081"
             visit-service:

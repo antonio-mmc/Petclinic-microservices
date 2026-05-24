@@ -2,7 +2,7 @@ spring:
   application:
     name: visit-service
   datasource:
-    url: jdbc:h2:mem:visitdb
+    url: jdbc:h2:mem:visitdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -13,7 +13,31 @@ spring:
   h2:
     console:
       enabled: true
+
+  # RabbitMQ connection (overridden in Docker via SPRING_RABBITMQ_HOST env var)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
   cloud:
+    # Spring Cloud Stream — async consumer for PetDeactivatedEvent
+    function:
+      definition: petEvents
+    stream:
+      default-binder: rabbit
+      bindings:
+        petEvents-in-0:
+          destination: pet-events
+          content-type: application/json
+          group: visit-service
+      rabbit:
+        bindings:
+          petEvents-in-0:
+            consumer:
+              binding-routing-key: pet.deactivated
+              auto-bind-dlq: false
     discovery:
       simple:
         instances:
@@ -29,6 +53,9 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
 
 management:
+  health:
+    rabbit:
+      enabled: false   # Prevents startup failure when RabbitMQ is not available locally
   endpoints:
     web:
       exposure:
